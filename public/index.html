@@ -107,5 +107,15 @@
     </footer>
 
     <script type="module" src="/chat.js"></script>
+
+    <!-- CallRail dynamic number insertion.
+         The call buttons on this page are rendered by chat.js after the
+         visitor makes a choice, so they do not exist when this script first
+         scans the page. chat.js calls CallTrk.swap() after rendering each one
+         to trigger a re-scan. -->
+    <script
+      type="text/javascript"
+      src="//cdn.callrail.com/companies/704836794/1cc386284ff815c44866/12/swap.js"
+    ></script>
   </body>
 </html>

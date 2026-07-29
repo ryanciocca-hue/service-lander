@@ -186,6 +186,23 @@ function clearActions() {
   actions.replaceChildren();
 }
 
+/**
+ * CallRail's swap.js scans the page for phone numbers when it loads. Ours are
+ * rendered later, as the visitor moves through the chat, so ask CallRail to
+ * re-scan each time we add one — otherwise the tracking number never replaces
+ * the static one and the call goes unattributed.
+ *
+ * A no-op when CallRail is absent or blocked, and wrapped so call tracking can
+ * never break the conversation.
+ */
+function refreshCallTracking() {
+  try {
+    window.CallTrk?.swap?.();
+  } catch (err) {
+    console.warn("CallRail swap failed:", err);
+  }
+}
+
 function revealHeaderCall() {
   if (!headerCall || !headerCall.hidden) return;
   headerCall.href = CONFIG.phoneHref;
@@ -195,6 +212,7 @@ function revealHeaderCall() {
     track("cta_click", { nodeId: "header", optionId: "header_call", optionLabel: "Header call button" });
     flush();
   });
+  refreshCallTracking();
 }
 
 /* -------------------------------------------------------------------------
@@ -263,6 +281,7 @@ function renderCta(nodeId, node) {
   });
 
   actions.appendChild(link);
+  if (node.cta.kind === "tel") refreshCallTracking();
 
   if (node.cta.note) actions.appendChild(element("p", "cta-note", node.cta.note));
   appendRestart();
