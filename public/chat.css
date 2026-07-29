@@ -98,6 +98,38 @@ a {
   gap: 12px;
 }
 
+/* On phones the logo is centred in the bar. The call button is lifted out of
+   the flow so it can't push the logo off-centre, and collapses to a circular
+   icon — at full width it would otherwise overlap the centred logo on any
+   screen narrower than about 400px. The number stays in the accessible name,
+   and the chat shows it in full at the point it matters. */
+@media (max-width: 599px) {
+  .site-header__inner {
+    position: relative;
+    justify-content: center;
+    padding-inline: 12px;
+  }
+  .header-call {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .header-call span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .wordmark {
   display: flex;
   align-items: center;

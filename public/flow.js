@@ -19,6 +19,8 @@
  * ===========================================================================
  */
 
+import { regionForState } from "./regions.js";
+
 export const CONFIG = {
   agentName: "Ryan",
   agentRole: "Atlas Copco Service",
@@ -202,7 +204,7 @@ export const NODES = {
           prompt: "Which state are you in? That way I can route you to the right team.",
           // Asked first when the visitor's IP gives us a usable guess — one tap
           // instead of scrolling a 50-item list. "No" falls back to `prompt`.
-          confirmPrompt: (state) => `Looks like you're in ${state} — is that right?`,
+          confirmPrompt: (state) => `Are you located in ${state}?`,
           emptyError: "Please pick your state.",
           required: true,
         },
@@ -266,7 +268,7 @@ export const NODES = {
           type: "select",
           options: US_STATES,
           prompt: "Which state is the machine in?",
-          confirmPrompt: (state) => `Looks like you're in ${state} — is that right?`,
+          confirmPrompt: (state) => `Is this machine in ${state}?`,
           emptyError: "Please pick your state.",
           required: true,
         },
@@ -288,17 +290,61 @@ export const NODES = {
   },
 };
 
-/** Shown after a form is submitted successfully. */
-export const THANK_YOU = {
-  parts_callback: [
-    "Got it — thanks!",
-    "A parts specialist will be in touch shortly. If it's urgent, you're welcome to call us directly.",
-  ],
-  service_request: [
-    "Thanks — that's come through to our service team.",
-    "Someone will follow up with you shortly to get this scheduled.",
-  ],
-};
+/**
+ * Shown after a form is submitted successfully.
+ *
+ * Service requests close with the regional manager for the state the visitor
+ * gave, so they have a direct number if they'd rather not wait for the
+ * callback. Territories come from regions.js.
+ */
+export function closing(kind, values) {
+  if (kind === "service_request") {
+    const messages = [
+      "Thanks — that's come through to our service team.",
+      "Someone will follow up with you shortly to get this scheduled.",
+    ];
+
+    const region = regionForState(values.state);
+
+    if (region.manager) {
+      messages.push(
+        `If it's urgent, ${region.manager} covers ${values.state} — you can reach them directly on ${region.phoneDisplay}.`
+      );
+      return {
+        messages,
+        cta: {
+          kind: "tel",
+          label: `Call ${region.manager}`,
+          href: region.phoneHref,
+          phoneDisplay: region.phoneDisplay,
+          note: `${region.phoneDisplay} · regional service manager for ${values.state}`,
+        },
+      };
+    }
+
+    // No regional manager for that state — the national hotline instead.
+    messages.push(
+      `If it's urgent, our technical support hotline is ${region.phoneDisplay}.`
+    );
+    return {
+      messages,
+      cta: {
+        kind: "tel",
+        label: `Call ${region.phoneDisplay}`,
+        href: region.phoneHref,
+        phoneDisplay: region.phoneDisplay,
+        note: "Technical support hotline",
+      },
+    };
+  }
+
+  return {
+    messages: [
+      "Got it — thanks!",
+      "A parts specialist will be in touch shortly. If it's urgent, you're welcome to call us directly.",
+    ],
+  };
+}
 
 /**
  * Every step, in flow order, used to draw the drop-off chart on the dashboard.

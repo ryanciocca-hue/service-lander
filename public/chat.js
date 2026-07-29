@@ -10,7 +10,7 @@
  * ===========================================================================
  */
 
-import { CONFIG, NODES, START_NODE, THANK_YOU } from "./flow.js";
+import { CONFIG, NODES, START_NODE, closing } from "./flow.js";
 
 const log = document.getElementById("chat-log");
 const actions = document.getElementById("chat-actions");
@@ -629,9 +629,17 @@ async function submitForm(nodeId, node, values) {
     flush();
 
     clearActions();
-    for (const message of THANK_YOU[node.form.kind] ?? ["Thanks — we'll be in touch."]) {
+    const { messages, cta } = closing(node.form.kind, values);
+    for (const message of messages) {
       await typeThen(message);
     }
+
+    // Service requests close with a direct number for the visitor's region.
+    if (cta) {
+      renderCta(`${node.form.id}_closing`, { cta, outcome: `${node.form.kind}_submitted` });
+      return;
+    }
+
     appendRestart();
   } catch {
     clearActions();
