@@ -252,10 +252,11 @@ a {
 
 .chat__log {
   padding: 20px 18px 6px;
-  /* Reserve height so the card doesn't jump as the first messages land, and
-     hold the thread to the bottom of that space so the opening bubbles sit
-     against the options instead of floating above a gap. */
-  min-height: 200px;
+  /* Just enough height for the typing indicator on first paint, so the card
+     isn't a sliver before the first message lands. Anything more shows as
+     dead space above the opening bubbles. The thread grows downward from
+     here, and sits at the bottom of the box while it's shorter than this. */
+  min-height: 84px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -270,6 +271,11 @@ a {
   display: flex;
   align-items: flex-start;
   gap: 9px;
+  /* Claim the available width, then let the bubble inside size to its text.
+     Without the explicit width the shrink-to-fit chain (column log -> row ->
+     body) collapses bubbles to roughly a third of the card and wraps text
+     that had room to sit on one line. */
+  width: 100%;
   max-width: 92%;
   align-self: flex-start;
 }
@@ -312,6 +318,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  /* Fill the row so the bubble's fit-content width has room to work with. */
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -332,6 +340,8 @@ a {
 }
 
 .msg--agent {
+  width: fit-content;
+  max-width: 100%;
   background: var(--agent-bubble);
   color: var(--ink);
   border-bottom-left-radius: 5px;
@@ -640,7 +650,7 @@ textarea:focus-visible {
   }
   .chat__log {
     padding: 24px 22px 8px;
-    min-height: 300px;
+    min-height: 92px;
   }
   .chat__actions {
     padding: 8px 22px 24px;
