@@ -41,6 +41,9 @@ export default async function handler(req, res) {
   const email = text(body.email, 254);
   // Both request types collect state now — it routes the lead to the right team.
   const state = text(body.state, 100);
+  // Which machine family, from the parts product question. Absent on the
+  // service path, so it is never required.
+  const product = text(body.product, 100);
   const notes = multiline(body.notes, 2000);
 
   const errors = {};
@@ -69,12 +72,13 @@ export default async function handler(req, res) {
     email,
     state,
     notes,
+    product,
   };
 
   try {
     await query(
-      `INSERT INTO submissions (id, session_id, kind, name, phone, email, state, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      `INSERT INTO submissions (id, session_id, kind, name, phone, email, state, notes, product)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         submission.id,
         submission.sessionId,
@@ -84,6 +88,7 @@ export default async function handler(req, res) {
         submission.email,
         submission.state,
         submission.notes,
+        submission.product,
       ]
     );
   } catch (err) {

@@ -33,6 +33,8 @@ const TRACKED_PARAMS = [
 
 let sessionId = null;
 let detectedState = null;
+// Answers a node asked us to remember, sent with any lead from this path.
+const captured = {};
 let seq = 0;
 let queue = [];
 let outcome = null;
@@ -339,6 +341,7 @@ function renderOptions(nodeId, node) {
       hasInteracted = true;
       clearActions();
       addBubble(option.label, "user");
+      if (node.capture) captured[node.capture] = option.label;
       track("option_selected", {
         nodeId,
         question: node.question ?? null,
@@ -623,7 +626,7 @@ async function submitForm(nodeId, node, values) {
     const response = await fetch("/api/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...values, kind: node.form.kind, sessionId }),
+      body: JSON.stringify({ ...captured, ...values, kind: node.form.kind, sessionId }),
     });
     const data = await response.json();
 

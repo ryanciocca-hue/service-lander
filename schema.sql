@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   email        TEXT NOT NULL,
   state        TEXT,
   notes        TEXT,
+  product      TEXT,
   notified     BOOLEAN NOT NULL DEFAULT false,
   notify_error TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()

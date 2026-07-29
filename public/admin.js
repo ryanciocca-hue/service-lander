@@ -908,6 +908,7 @@ async function openTranscript(id) {
       ["Name", data.submission.name],
       ["Phone", data.submission.phone],
       ["Email", data.submission.email],
+      ["Product", data.submission.product ?? "—"],
       ["State", data.submission.state ?? "—"],
       ["Details", data.submission.notes ?? "—"],
     ];
@@ -951,7 +952,7 @@ function renderSubmissions(submissions) {
   if (submissions.length === 0) {
     const row = element("tr");
     const cell = element("td", "empty", "No submissions in this period.");
-    cell.colSpan = 8;
+    cell.colSpan = 9;
     row.appendChild(cell);
     body.appendChild(row);
     return;
@@ -979,6 +980,7 @@ function renderSubmissions(submissions) {
     contact.appendChild(element("div", "muted", submission.phone));
     row.appendChild(contact);
 
+    row.appendChild(element("td", null, submission.product ?? "—"));
     row.appendChild(element("td", null, submission.state ?? "—"));
     row.appendChild(element("td", "clamp", submission.notes ?? "—"));
 
@@ -996,7 +998,7 @@ $("export-csv").addEventListener("click", () => {
   if (submissionsCache.length === 0) return;
 
   const headers = [
-    "Created", "Type", "Name", "Phone", "Email", "State", "Details",
+    "Created", "Type", "Name", "Phone", "Email", "Product", "State", "Details",
     "Campaign", "Source", "Keyword", "Google Click ID", "Device", "Emailed",
   ];
 
@@ -1006,6 +1008,7 @@ $("export-csv").addEventListener("click", () => {
     submission.name,
     submission.phone,
     submission.email,
+    submission.product ?? "",
     submission.state ?? "",
     submission.notes ?? "",
     submission.utm_campaign ?? "",

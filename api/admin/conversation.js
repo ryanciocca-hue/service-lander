@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         [id]
       ),
       one(
-        `SELECT id, kind, name, phone, email, state, notes, notified, notify_error, created_at
+        `SELECT id, kind, name, phone, email, state, product, notes, notified, notify_error, created_at
            FROM submissions
           WHERE session_id = $1
           ORDER BY created_at DESC

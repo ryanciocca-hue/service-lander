@@ -81,22 +81,50 @@ export const NODES = {
     ],
     question: "Are you looking for parts or service?",
     options: [
-      { id: "parts", label: "Parts", next: "parts_type" },
+      { id: "parts", label: "Parts", next: "parts_product" },
       { id: "service", label: "Service", next: "service_form" },
     ],
   },
 
-  // Qualifier: we only cover portable compressors, so stationary enquiries
-  // are handed off before they get any further down the parts path.
-  parts_type: {
+  // Which machine family the parts are for. Every option here is equipment we
+  // cover, so they all continue straight to the routing question.
+  //
+  // Stationary compressors are deliberately absent from this list — that is
+  // the one product family handled by another team. Anyone with one has to
+  // pick "Something else", which is where the stationary check now lives, so
+  // nobody else is asked a question that doesn't apply to them.
+  parts_product: {
     messages: [
       "I can help you with that.",
+      "Which product do you need parts for?",
+    ],
+    question: "Which product do you need parts for?",
+    // The chosen label travels with any lead from this path, so the specialist
+    // calling back knows which machine family it's for.
+    capture: "product",
+    options: [
+      { id: "mobile_compressors", label: "Mobile Compressors", next: "parts_route" },
+      { id: "construction_tools", label: "Construction Tools", next: "parts_route" },
+      { id: "generators", label: "Generators", next: "parts_route" },
+      { id: "portable_pumps", label: "Portable Pumps", next: "parts_route" },
+      { id: "light_towers", label: "Light Towers", next: "parts_route" },
+      { id: "energy_storage", label: "Energy Storage Systems", next: "parts_route" },
+      { id: "something_else", label: "Something Else", next: "parts_type" },
+    ],
+  },
+
+  // Only reached from "Something else" — we cover portable equipment, so a
+  // stationary compressor is handed off before going any further.
+  parts_type: {
+    messages: [
+      "No problem — one quick check.",
       "Is this for a stationary or a portable compressor?",
     ],
     question: "Stationary or portable compressor?",
     options: [
       { id: "portable", label: "Portable", next: "parts_route" },
       { id: "stationary", label: "Stationary", next: "parts_stationary" },
+      { id: "neither", label: "Neither — something else", next: "parts_route" },
     ],
   },
 
@@ -118,7 +146,7 @@ export const NODES = {
 
   parts_route: {
     messages: [
-      "Perfect — portable is what we specialize in.",
+      "Got it.",
       "Do you want someone to reach out to you for help, or do you want to shop for your parts online?",
     ],
     question: "Reach out for help, or shop online?",
@@ -362,9 +390,10 @@ export function closing(kind, values) {
  */
 export const FUNNEL = [
   { nodeId: "intro", label: "Chat opened", parent: null, depth: 0 },
-  { nodeId: "parts_type", label: "Chose Parts", parent: "intro", depth: 1 },
-  { nodeId: "parts_stationary", label: "Stationary — referred out", parent: "parts_type", depth: 2 },
-  { nodeId: "parts_route", label: "Portable", parent: "parts_type", depth: 2 },
+  { nodeId: "parts_product", label: "Chose Parts", parent: "intro", depth: 1 },
+  { nodeId: "parts_type", label: "Something else — checked", parent: "parts_product", depth: 2 },
+  { nodeId: "parts_stationary", label: "Stationary — referred out", parent: "parts_type", depth: 3 },
+  { nodeId: "parts_route", label: "Reached routing", parent: "parts_product", depth: 2 },
   { nodeId: "parts_webshop", label: "Buy parts online", parent: "parts_route", depth: 3 },
   { nodeId: "parts_callback", label: "Callback form", parent: "parts_route", depth: 3 },
   { nodeId: "parts_call", label: "Call parts support", parent: "parts_route", depth: 3 },

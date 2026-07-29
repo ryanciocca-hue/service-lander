@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     const list = await rows(
       `SELECT sub.id, sub.session_id, sub.kind, sub.name, sub.phone, sub.email,
-              sub.state, sub.notes, sub.notified, sub.notify_error, sub.created_at,
+              sub.state, sub.product, sub.notes, sub.notified, sub.notify_error, sub.created_at,
               s.utm_campaign, s.utm_source, s.utm_term, s.gclid, s.device
          FROM submissions sub
          LEFT JOIN sessions s ON s.id = sub.session_id
