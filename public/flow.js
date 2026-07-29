@@ -86,13 +86,10 @@ export const NODES = {
     ],
   },
 
-  // Which machine family the parts are for. Every option here is equipment we
-  // cover, so they all continue straight to the routing question.
-  //
-  // Stationary compressors are deliberately absent from this list — that is
-  // the one product family handled by another team. Anyone with one has to
-  // pick "Something else", which is where the stationary check now lives, so
-  // nobody else is asked a question that doesn't apply to them.
+  // Which machine family the parts are for. Compressor enquiries get one more
+  // qualifying question (mobile vs stationary) because stationary machines are
+  // the one family another team handles; every other family continues straight
+  // to the routing question.
   parts_product: {
     messages: [
       "I can help you with that.",
@@ -103,7 +100,7 @@ export const NODES = {
     // calling back knows which machine family it's for.
     capture: "product",
     options: [
-      { id: "mobile_compressors", label: "Mobile Compressors", next: "parts_route" },
+      { id: "mobile_compressors", label: "Mobile Compressors", next: "compressor_type" },
       { id: "construction_tools", label: "Construction Tools", next: "parts_route" },
       { id: "generators", label: "Generators", next: "parts_route" },
       { id: "portable_pumps", label: "Portable Pumps", next: "parts_route" },
@@ -113,8 +110,19 @@ export const NODES = {
     ],
   },
 
-  // Only reached from "Something else" — we cover portable equipment, so a
-  // stationary compressor is handed off before going any further.
+  // Reached from "Mobile Compressors" — confirms the machine really is mobile
+  // before going any further, since stationary compressors are handed off.
+  compressor_type: {
+    messages: ["Quick check — is this a mobile or a stationary compressor?"],
+    question: "Mobile or stationary compressor?",
+    options: [
+      { id: "mobile", label: "Mobile", next: "parts_route" },
+      { id: "stationary", label: "Stationary", next: "parts_stationary" },
+    ],
+  },
+
+  // Reached from "Something else" — catches stationary-compressor owners who
+  // didn't identify with any of the named product families.
   parts_type: {
     messages: [
       "No problem — one quick check.",
@@ -391,8 +399,11 @@ export function closing(kind, values) {
 export const FUNNEL = [
   { nodeId: "intro", label: "Chat opened", parent: null, depth: 0 },
   { nodeId: "parts_product", label: "Chose Parts", parent: "intro", depth: 1 },
+  { nodeId: "compressor_type", label: "Mobile Compressors — checked", parent: "parts_product", depth: 2 },
   { nodeId: "parts_type", label: "Something else — checked", parent: "parts_product", depth: 2 },
-  { nodeId: "parts_stationary", label: "Stationary — referred out", parent: "parts_type", depth: 3 },
+  // Reachable from either check above, so its share is shown against everyone
+  // who chose Parts rather than one branch.
+  { nodeId: "parts_stationary", label: "Stationary — referred out", parent: "parts_product", depth: 2 },
   { nodeId: "parts_route", label: "Reached routing", parent: "parts_product", depth: 2 },
   { nodeId: "parts_webshop", label: "Buy parts online", parent: "parts_route", depth: 3 },
   { nodeId: "parts_callback", label: "Callback form", parent: "parts_route", depth: 3 },
