@@ -21,6 +21,7 @@ const headerCall = document.getElementById("header-call");
  * ---------------------------------------------------------------------- */
 
 const SESSION_KEY = "pt_session_id";
+const STATE_KEY = "pt_detected_state";
 const TRACKED_PARAMS = [
   "gclid",
   "utm_source",
@@ -43,9 +44,18 @@ const sessionReady = startSession();
 async function startSession() {
   // Reuse the id across a refresh so one visit stays one conversation.
   const existing = sessionStorage.getItem(SESSION_KEY);
+  const cachedState = sessionStorage.getItem(STATE_KEY);
+
   if (existing) {
     sessionId = existing;
-    return;
+    // Reuse the detected state too. Without this a reload drops the guess and
+    // the visitor gets the full state picker instead of a yes/no.
+    if (cachedState) {
+      detectedState = cachedState;
+      return;
+    }
+    // No cached guess — fall through and ask the server, passing the existing
+    // id so it refreshes the session rather than opening a second one.
   }
 
   const search = new URLSearchParams(location.search);
@@ -60,6 +70,7 @@ async function startSession() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        sessionId: existing || null,
         params,
         landingUrl: location.href,
         referrer: document.referrer || null,
@@ -71,7 +82,10 @@ async function startSession() {
       sessionStorage.setItem(SESSION_KEY, sessionId);
     }
     // A guess from the visitor's IP. Always confirmed with them before use.
-    if (data.detectedState) detectedState = data.detectedState;
+    if (data.detectedState) {
+      detectedState = data.detectedState;
+      sessionStorage.setItem(STATE_KEY, detectedState);
+    }
   } catch {
     // Tracking is best-effort; the chat carries on regardless.
   }
