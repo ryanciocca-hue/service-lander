@@ -39,14 +39,15 @@ export default async function handler(req, res) {
   const name = text(body.name, 100);
   const phone = text(body.phone, 32);
   const email = text(body.email, 254);
-  const state = kind === "parts_callback" ? text(body.state, 100) : null;
+  // Both request types collect state now — it routes the lead to the right team.
+  const state = text(body.state, 100);
   const notes = multiline(body.notes, 2000);
 
   const errors = {};
   if (!name) errors.name = "Please enter your name.";
   if (!phone || !isPhone(phone)) errors.phone = "Please enter a valid phone number.";
   if (!email || !isEmail(email)) errors.email = "Please enter a valid email address.";
-  if (kind === "parts_callback" && !state) errors.state = "Please select your state.";
+  if (!state) errors.state = "Please select your state.";
   if (!notes) {
     errors.notes =
       kind === "service_request"

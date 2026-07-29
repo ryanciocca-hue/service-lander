@@ -31,6 +31,7 @@ const TRACKED_PARAMS = [
 ];
 
 let sessionId = null;
+let detectedState = null;
 let seq = 0;
 let queue = [];
 let outcome = null;
@@ -69,6 +70,8 @@ async function startSession() {
       sessionId = data.sessionId;
       sessionStorage.setItem(SESSION_KEY, sessionId);
     }
+    // A guess from the visitor's IP. Always confirmed with them before use.
+    if (data.detectedState) detectedState = data.detectedState;
   } catch {
     // Tracking is best-effort; the chat carries on regardless.
   }
@@ -439,10 +442,12 @@ function buildInput(spec) {
 function renderForm(nodeId, node) {
   hasInteracted = true;
   track("form_shown", { nodeId, optionId: node.form.id, optionLabel: node.form.id });
-  askField(nodeId, node, 0, {});
+  // `ctx` tracks how the run is going without polluting `values`, which is
+  // what gets posted to the API.
+  askField(nodeId, node, 0, {}, {});
 }
 
-async function askField(nodeId, node, index, values) {
+async function askField(nodeId, node, index, values, ctx) {
   const fields = node.form.fields;
 
   if (index >= fields.length) {
@@ -451,6 +456,24 @@ async function askField(nodeId, node, index, values) {
   }
 
   const spec = fields[index];
+
+  // Where we have a usable guess from the visitor's IP, offer it as a yes/no
+  // instead of a list to scroll — one tap rather than a 50-item picker. Asked
+  // once per run; answering "No" falls through to the full list below.
+  if (
+    spec.confirmPrompt &&
+    detectedState &&
+    !ctx.stateConfirmAsked &&
+    Array.isArray(spec.options) &&
+    spec.options.includes(detectedState)
+  ) {
+    ctx.stateConfirmAsked = true;
+    clearActions();
+    await typeThen(spec.confirmPrompt(detectedState));
+    renderStateConfirm(nodeId, node, index, values, ctx, spec, detectedState);
+    return;
+  }
+
   clearActions();
 
   const prompt = typeof spec.prompt === "function" ? spec.prompt(values) : spec.prompt;
@@ -503,7 +526,7 @@ async function askField(nodeId, node, index, values) {
       optionId: spec.name,
       optionLabel: spec.label,
     });
-    askField(nodeId, node, index + 1, values);
+    askField(nodeId, node, index + 1, values, ctx);
   };
 
   step.addEventListener("submit", advance);
@@ -537,6 +560,41 @@ async function askField(nodeId, node, index, values) {
   scrollToEnd();
 }
 
+/** Yes/no confirmation of the IP-detected state. */
+function renderStateConfirm(nodeId, node, index, values, ctx, spec, guess) {
+  const answer = (accepted) => {
+    clearActions();
+    addBubble(accepted ? "Yes" : "No", "user");
+
+    if (accepted) {
+      values[spec.name] = guess;
+      track("form_field", {
+        nodeId,
+        optionId: spec.name,
+        optionLabel: `${spec.label} — auto-detected, confirmed`,
+      });
+      askField(nodeId, node, index + 1, values, ctx);
+      return;
+    }
+
+    // Tells you how often the IP guess is wrong.
+    track("form_field", {
+      nodeId,
+      optionId: `${spec.name}_rejected`,
+      optionLabel: `${spec.label} — auto-detected, rejected`,
+    });
+    askField(nodeId, node, index, values, ctx);
+  };
+
+  for (const [label, accepted] of [["Yes", true], ["No", false]]) {
+    const button = element("button", "option", label);
+    button.type = "button";
+    button.addEventListener("click", () => answer(accepted));
+    actions.appendChild(button);
+  }
+  scrollToEnd();
+}
+
 async function submitForm(nodeId, node, values) {
   clearActions();
 
@@ -562,7 +620,7 @@ async function submitForm(nodeId, node, values) {
       const index = node.form.fields.findIndex((f) => f.name === badField);
       clearActions();
       await typeThen(data.error ?? "Something went wrong — let's try that again.");
-      askField(nodeId, node, index >= 0 ? index : 0, values);
+      askField(nodeId, node, index >= 0 ? index : 0, values, {});
       return;
     }
 

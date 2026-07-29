@@ -200,6 +200,9 @@ export const NODES = {
           type: "select",
           options: US_STATES,
           prompt: "Which state are you in? That way I can route you to the right team.",
+          // Asked first when the visitor's IP gives us a usable guess — one tap
+          // instead of scrolling a 50-item list. "No" falls back to `prompt`.
+          confirmPrompt: (state) => `Looks like you're in ${state} — is that right?`,
           emptyError: "Please pick your state.",
           required: true,
         },
@@ -258,11 +261,21 @@ export const NODES = {
           maxLength: 254,
         },
         {
+          name: "state",
+          label: "State",
+          type: "select",
+          options: US_STATES,
+          prompt: "Which state is the machine in?",
+          confirmPrompt: (state) => `Looks like you're in ${state} — is that right?`,
+          emptyError: "Please pick your state.",
+          required: true,
+        },
+        {
           name: "notes",
           label: "Service request details",
           type: "textarea",
           prompt:
-            "Now tell me what's going on — machine model, serial number, the issue you're seeing, and where the machine is.",
+            "Now tell me what's going on — machine model, serial number, and the issue you're seeing.",
           emptyError: "A short description is enough to get started.",
           required: true,
           maxLength: 2000,

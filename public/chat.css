@@ -80,9 +80,12 @@ a {
 
 /* ---------- Header ------------------------------------------------------ */
 
+/* White header: the Atlas Copco wordmark is blue on transparent and is drawn
+   for light backgrounds — on the old blue bar it lost almost all contrast. */
 .site-header {
-  background: var(--brand-deep);
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
 }
 
 .site-header__inner {
@@ -102,32 +105,22 @@ a {
   min-width: 0;
 }
 
-.wordmark__mark {
-  width: 34px;
-  height: 34px;
+.wordmark__logo {
+  /* The asset includes the rules above and below the wordmark, so roughly
+     half its height is bar — it needs to run larger than a plain wordmark
+     would to stay readable. */
+  height: 42px;
+  width: auto;
   flex: none;
-  border-radius: 8px;
-  background: #fff;
-  color: var(--brand-deep);
-  font-weight: 800;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
+  display: block;
 }
 
-.wordmark__text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-  min-width: 0;
-}
-.wordmark__text strong {
-  font-size: 15px;
-  letter-spacing: 0.01em;
-}
-.wordmark__text small {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.82);
+.wordmark__strap {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--ink-soft);
+  padding-left: 11px;
+  border-left: 1px solid var(--line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -136,8 +129,15 @@ a {
 /* The call button only appears once the visitor answers, and on a narrow
    phone it leaves the strapline too little room — a clipped half-word reads
    worse than no strapline. So it gives way at that point, not before. */
-@media (max-width: 460px) {
-  .site-header.has-call .wordmark__text small {
+@media (max-width: 520px) {
+  .site-header.has-call .wordmark__strap {
+    display: none;
+  }
+}
+
+/* Below this the strapline never fits alongside the logo. */
+@media (max-width: 400px) {
+  .wordmark__strap {
     display: none;
   }
 }
@@ -152,7 +152,8 @@ a {
   min-height: 44px;
   padding: 10px 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  /* The deeper step: this label is small, so it needs 4.5:1 against white. */
+  background: var(--brand-deep);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -160,7 +161,7 @@ a {
   transition: background 0.15s ease;
 }
 .header-call:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--brand-darker);
 }
 
 /* ---------- Page shell -------------------------------------------------- */
@@ -722,6 +723,9 @@ textarea:focus-visible {
 /* ---------- Larger screens ---------------------------------------------- */
 
 @media (min-width: 600px) {
+  .wordmark__logo {
+    height: 48px;
+  }
   .intro h1 {
     font-size: 31px;
     margin-bottom: 10px;

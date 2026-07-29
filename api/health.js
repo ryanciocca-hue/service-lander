@@ -1,4 +1,5 @@
 import { query, connectionVarName } from "../lib/db.js";
+import { detectState, geoDebug } from "../lib/geo.js";
 import { CONFIG } from "../public/flow.js";
 
 /**
@@ -64,6 +65,10 @@ export default async function handler(req, res) {
   checks.content = {
     phonePlaceholderStillSet: CONFIG.phoneDisplay.includes("555-0100"),
   };
+
+  // ---- What the edge thinks of *your* location ---------------------------
+  // Load this from a phone on cellular to sanity-check state detection.
+  checks.geo = { ...geoDebug(req), detectedState: detectState(req) };
 
   const blocking = [
     database.connected,

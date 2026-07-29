@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { query } from "../lib/db.js";
 import { readJson, methodGuard, text, hashIp, deviceFromUserAgent } from "../lib/http.js";
+import { detectState } from "../lib/geo.js";
 
 /**
  * POST /api/session
@@ -38,11 +39,13 @@ export default async function handler(req, res) {
       ]
     );
 
-    res.status(200).json({ sessionId: id });
+    // A hint the chat asks the visitor to confirm — never used to fill the
+    // field on its own.
+    res.status(200).json({ sessionId: id, detectedState: detectState(req) });
   } catch (err) {
     console.error("POST /api/session failed:", err);
     // The chat must still work if tracking is down, so hand back a null id and
     // let the client carry on without logging.
-    res.status(200).json({ sessionId: null });
+    res.status(200).json({ sessionId: null, detectedState: detectState(req) });
   }
 }
