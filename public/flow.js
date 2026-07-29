@@ -21,6 +21,9 @@
 
 import { regionForState } from "./regions.js";
 
+/** Asked when the visitor's IP gives us a state to offer. */
+const confirmState = (state) => `Are you located in ${state}?`;
+
 export const CONFIG = {
   agentName: "Ryan",
   agentRole: "Atlas Copco Service",
@@ -204,7 +207,7 @@ export const NODES = {
           prompt: "Which state are you in? That way I can route you to the right team.",
           // Asked first when the visitor's IP gives us a usable guess — one tap
           // instead of scrolling a 50-item list. "No" falls back to `prompt`.
-          confirmPrompt: (state) => `Are you located in ${state}?`,
+          confirmPrompt: confirmState,
           emptyError: "Please pick your state.",
           required: true,
         },
@@ -267,8 +270,8 @@ export const NODES = {
           label: "State",
           type: "select",
           options: US_STATES,
-          prompt: "Which state is the machine in?",
-          confirmPrompt: (state) => `Is this machine in ${state}?`,
+          prompt: "Which state are you in?",
+          confirmPrompt: confirmState,
           emptyError: "Please pick your state.",
           required: true,
         },
