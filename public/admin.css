@@ -563,6 +563,86 @@ h2 {
   font-size: 14px;
 }
 
+/* ---------- Selection & deletion ----------------------------------------- */
+
+.col-check {
+  width: 1%;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+
+.col-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--series-1);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--wash);
+}
+
+.bulkbar__count {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.btn--danger {
+  background: var(--critical);
+  border-color: transparent;
+  color: #fff;
+}
+.btn--danger:hover {
+  background: var(--critical);
+  filter: brightness(0.92);
+}
+
+.confirm {
+  width: min(420px, 92vw);
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.confirm::backdrop {
+  background: rgba(11, 11, 11, 0.5);
+}
+
+.confirm h2 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.confirm p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.confirm__note {
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--wash);
+  font-size: 13px;
+}
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .pager {
   display: flex;
   align-items: center;

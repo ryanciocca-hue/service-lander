@@ -606,6 +606,140 @@ $("toggle-daily-table").addEventListener("click", (event) => {
 });
 
 /* -------------------------------------------------------------------------
+ * Selection & deletion
+ * ---------------------------------------------------------------------- */
+
+const selection = {
+  conversations: new Set(),
+  submissions: new Set(),
+};
+
+const BULK = {
+  conversations: { bar: "conv-bulk", count: "conv-count", all: "conv-all", noun: "conversation" },
+  submissions: { bar: "sub-bulk", count: "sub-count", all: "sub-all", noun: "submission" },
+};
+
+function refreshBulkBar(kind) {
+  const ui = BULK[kind];
+  const chosen = selection[kind];
+  const bar = $(ui.bar);
+
+  bar.hidden = chosen.size === 0;
+  $(ui.count).textContent = `${chosen.size} ${ui.noun}${chosen.size === 1 ? "" : "s"} selected`;
+
+  // The header checkbox reflects the rows currently on screen.
+  const boxes = [...document.querySelectorAll(`input[data-select="${kind}"]`)];
+  const checked = boxes.filter((box) => box.checked).length;
+  const all = $(ui.all);
+  all.checked = boxes.length > 0 && checked === boxes.length;
+  all.indeterminate = checked > 0 && checked < boxes.length;
+}
+
+/** A row checkbox, wired to the selection set for its table. */
+function selectBox(kind, id) {
+  const box = element("input");
+  box.type = "checkbox";
+  box.dataset.select = kind;
+  box.value = id;
+  box.checked = selection[kind].has(id);
+  box.setAttribute("aria-label", `Select this ${BULK[kind].noun}`);
+  box.addEventListener("change", () => {
+    if (box.checked) selection[kind].add(id);
+    else selection[kind].delete(id);
+    refreshBulkBar(kind);
+  });
+  return box;
+}
+
+/** Resolves true only if the operator confirms. */
+function confirmDelete({ title, body, note }) {
+  return new Promise((resolve) => {
+    const dialog = $("confirm");
+    $("confirm-title").textContent = title;
+    $("confirm-body").textContent = body;
+
+    const noteEl = $("confirm-note");
+    noteEl.textContent = note ?? "";
+    noteEl.hidden = !note;
+
+    const done = (answer) => {
+      dialog.close();
+      $("confirm-ok").removeEventListener("click", onOk);
+      $("confirm-cancel").removeEventListener("click", onCancel);
+      resolve(answer);
+    };
+    const onOk = () => done(true);
+    const onCancel = () => done(false);
+
+    $("confirm-ok").addEventListener("click", onOk);
+    $("confirm-cancel").addEventListener("click", onCancel);
+    dialog.showModal();
+  });
+}
+
+async function deleteSelected(kind) {
+  const ids = [...selection[kind]];
+  if (ids.length === 0) return;
+
+  const noun = `${BULK[kind].noun}${ids.length === 1 ? "" : "s"}`;
+  const ok = await confirmDelete({
+    title: `Delete ${ids.length} ${noun}?`,
+    body: `This permanently removes ${ids.length} ${noun}. It cannot be undone.`,
+    note:
+      kind === "conversations"
+        ? "Any submitted lead from these conversations is kept — delete those from the Submissions tab if you want them gone too."
+        : null,
+  });
+  if (!ok) return;
+
+  setStatus("Deleting…");
+  try {
+    const result = await api("/api/admin/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, ids }),
+    });
+
+    selection[kind].clear();
+    refreshBulkBar(kind);
+
+    const kept =
+      result.keptLeads > 0
+        ? ` ${result.keptLeads} lead${result.keptLeads === 1 ? "" : "s"} kept in Submissions.`
+        : "";
+
+    // Reload first — loadAll() writes its own status, so the confirmation has
+    // to be set afterwards or it's overwritten before anyone reads it.
+    await loadAll();
+    setStatus(`Deleted ${result.deleted} ${noun}.${kept}`);
+  } catch (err) {
+    setStatus(err.message);
+  }
+}
+
+for (const [kind, ui] of Object.entries(BULK)) {
+  $(ui.all).addEventListener("change", (event) => {
+    for (const box of document.querySelectorAll(`input[data-select="${kind}"]`)) {
+      box.checked = event.target.checked;
+      if (box.checked) selection[kind].add(box.value);
+      else selection[kind].delete(box.value);
+    }
+    refreshBulkBar(kind);
+  });
+}
+
+$("conv-delete").addEventListener("click", () => deleteSelected("conversations"));
+$("sub-delete").addEventListener("click", () => deleteSelected("submissions"));
+
+for (const [kind, id] of [["conversations", "conv-clear"], ["submissions", "sub-clear"]]) {
+  $(id).addEventListener("click", () => {
+    selection[kind].clear();
+    for (const box of document.querySelectorAll(`input[data-select="${kind}"]`)) box.checked = false;
+    refreshBulkBar(kind);
+  });
+}
+
+/* -------------------------------------------------------------------------
  * Conversations
  * ---------------------------------------------------------------------- */
 
@@ -616,13 +750,17 @@ function renderConversations(data) {
   if (data.conversations.length === 0) {
     const row = element("tr");
     const cell = element("td", "empty", "No conversations match these filters.");
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     row.appendChild(cell);
     body.appendChild(row);
   }
 
   for (const conversation of data.conversations) {
     const row = element("tr");
+
+    const pick = element("td", "col-check");
+    pick.appendChild(selectBox("conversations", conversation.id));
+    row.appendChild(pick);
 
     row.appendChild(element("td", "nowrap", formatDateTime(conversation.created_at)));
 
@@ -663,6 +801,8 @@ function renderConversations(data) {
 
     body.appendChild(row);
   }
+
+  refreshBulkBar("conversations");
 
   const pager = $("pager");
   pager.replaceChildren();
@@ -811,7 +951,7 @@ function renderSubmissions(submissions) {
   if (submissions.length === 0) {
     const row = element("tr");
     const cell = element("td", "empty", "No submissions in this period.");
-    cell.colSpan = 7;
+    cell.colSpan = 8;
     row.appendChild(cell);
     body.appendChild(row);
     return;
@@ -819,6 +959,11 @@ function renderSubmissions(submissions) {
 
   for (const submission of submissions) {
     const row = element("tr");
+
+    const pick = element("td", "col-check");
+    pick.appendChild(selectBox("submissions", submission.id));
+    row.appendChild(pick);
+
     row.appendChild(element("td", "nowrap", formatDateTime(submission.created_at)));
 
     const kindCell = element("td");
@@ -843,6 +988,8 @@ function renderSubmissions(submissions) {
 
     body.appendChild(row);
   }
+
+  refreshBulkBar("submissions");
 }
 
 $("export-csv").addEventListener("click", () => {

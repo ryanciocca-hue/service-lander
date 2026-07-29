@@ -133,10 +133,18 @@
                 aria-label="Search conversations"
               />
             </div>
+            <div class="bulkbar" id="conv-bulk" hidden>
+              <span class="bulkbar__count" id="conv-count"></span>
+              <button class="btn btn--danger" id="conv-delete">Delete selected</button>
+              <button class="linkish" id="conv-clear">Clear selection</button>
+            </div>
             <div class="table-wrap">
               <table class="table" id="conversations-table">
                 <thead>
                   <tr>
+                    <th scope="col" class="col-check">
+                      <input type="checkbox" id="conv-all" aria-label="Select all conversations" />
+                    </th>
                     <th scope="col">When</th>
                     <th scope="col">Path taken</th>
                     <th scope="col">Outcome</th>
@@ -159,10 +167,18 @@
               <h2>Submissions</h2>
               <button class="btn btn--primary" id="export-csv">Export CSV</button>
             </div>
+            <div class="bulkbar" id="sub-bulk" hidden>
+              <span class="bulkbar__count" id="sub-count"></span>
+              <button class="btn btn--danger" id="sub-delete">Delete selected</button>
+              <button class="linkish" id="sub-clear">Clear selection</button>
+            </div>
             <div class="table-wrap">
               <table class="table" id="submissions-table">
                 <thead>
                   <tr>
+                    <th scope="col" class="col-check">
+                      <input type="checkbox" id="sub-all" aria-label="Select all submissions" />
+                    </th>
                     <th scope="col">When</th>
                     <th scope="col">Type</th>
                     <th scope="col">Name</th>
@@ -187,6 +203,16 @@
         <button class="btn btn--ghost" id="close-transcript">Close</button>
       </div>
       <div class="drawer__body" id="transcript-body"></div>
+    </dialog>
+
+    <dialog class="confirm" id="confirm">
+      <h2 id="confirm-title">Delete records?</h2>
+      <p id="confirm-body"></p>
+      <p class="confirm__note" id="confirm-note" hidden></p>
+      <div class="confirm__actions">
+        <button class="btn" id="confirm-cancel">Cancel</button>
+        <button class="btn btn--danger" id="confirm-ok">Delete</button>
+      </div>
     </dialog>
 
     <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
