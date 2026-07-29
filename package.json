@@ -1,0 +1,13 @@
+{
+  "name": "pt-service-lander",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Conversational landing page for service.powertechniquena.com with an admin dashboard.",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

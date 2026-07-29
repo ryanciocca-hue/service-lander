@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Conversation dashboard — Power Technique Service</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Ctext x='16' y='22' font-family='system-ui,sans-serif' font-size='15' font-weight='700' fill='%23fff' text-anchor='middle'%3E%E2%97%A7%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+
+  <body>
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Sign in                                                           -->
+    <!-- ---------------------------------------------------------------- -->
+    <div class="gate" id="gate" hidden>
+      <form class="gate__card" id="login-form">
+        <h1>Conversation dashboard</h1>
+        <p class="muted">Sign in to review chats from service.powertechniquena.com.</p>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <p class="form-error" id="login-error" hidden></p>
+        <button class="btn btn--primary" type="submit" id="login-button">Sign in</button>
+      </form>
+    </div>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Dashboard                                                         -->
+    <!-- ---------------------------------------------------------------- -->
+    <div id="app" hidden>
+      <header class="topbar">
+        <div class="topbar__inner">
+          <h1>Conversation dashboard</h1>
+          <button class="btn btn--ghost" id="logout">Sign out</button>
+        </div>
+      </header>
+
+      <div class="shell">
+        <!-- Filters sit in one row above the charts and apply to every tab. -->
+        <div class="filters">
+          <label class="control">
+            <span>Period</span>
+            <select id="filter-range">
+              <option value="today">Today</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d" selected>Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+          </label>
+
+          <label class="control">
+            <span>Campaign</span>
+            <select id="filter-campaign">
+              <option value="">All campaigns</option>
+            </select>
+          </label>
+
+          <button class="btn btn--ghost" id="refresh">Refresh</button>
+          <span class="filters__status muted" id="status" role="status"></span>
+        </div>
+
+        <nav class="tabs" role="tablist">
+          <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+          <button class="tab" role="tab" data-tab="conversations" aria-selected="false">Conversations</button>
+          <button class="tab" role="tab" data-tab="submissions" aria-selected="false">Submissions</button>
+        </nav>
+
+        <!-- ---- Overview ---------------------------------------------- -->
+        <section class="panel" id="panel-overview" role="tabpanel">
+          <div class="tiles" id="tiles"></div>
+
+          <div class="card">
+            <div class="card__head">
+              <h2>Which options people choose</h2>
+              <p class="muted">
+                Counted once per conversation. Options nobody picked are shown at zero.
+              </p>
+            </div>
+            <div id="questions"></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card__head">
+                <h2>How far conversations get</h2>
+                <p class="muted">
+                  Parts and Service run in parallel, so each step is shown as a share of the
+                  step above it rather than one straight funnel.
+                </p>
+              </div>
+              <div id="funnel" class="bars"></div>
+            </div>
+
+            <div class="card">
+              <div class="card__head">
+                <h2>Where they end up</h2>
+                <p class="muted">The last thing each conversation did.</p>
+              </div>
+              <div id="outcomes" class="bars"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__head">
+              <h2>Daily volume</h2>
+              <button class="linkish" id="toggle-daily-table" aria-expanded="false">
+                Show numbers
+              </button>
+            </div>
+            <div id="daily"></div>
+            <div id="daily-table" hidden></div>
+          </div>
+
+          <div class="card">
+            <div class="card__head"><h2>Devices</h2></div>
+            <div id="devices" class="bars"></div>
+          </div>
+        </section>
+
+        <!-- ---- Conversations ----------------------------------------- -->
+        <section class="panel" id="panel-conversations" role="tabpanel" hidden>
+          <div class="card">
+            <div class="card__head card__head--row">
+              <h2>Conversations</h2>
+              <input
+                class="search"
+                id="search"
+                type="search"
+                placeholder="Search options, campaign, keyword…"
+                aria-label="Search conversations"
+              />
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="conversations-table">
+                <thead>
+                  <tr>
+                    <th scope="col">When</th>
+                    <th scope="col">Path taken</th>
+                    <th scope="col">Outcome</th>
+                    <th scope="col">Campaign</th>
+                    <th scope="col">Device</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="pager" id="pager"></div>
+          </div>
+        </section>
+
+        <!-- ---- Submissions ------------------------------------------- -->
+        <section class="panel" id="panel-submissions" role="tabpanel" hidden>
+          <div class="card">
+            <div class="card__head card__head--row">
+              <h2>Submissions</h2>
+              <button class="btn btn--primary" id="export-csv">Export CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="submissions-table">
+                <thead>
+                  <tr>
+                    <th scope="col">When</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Contact</th>
+                    <th scope="col">State</th>
+                    <th scope="col">Details</th>
+                    <th scope="col">Emailed</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Transcript replay -->
+    <dialog class="drawer" id="transcript">
+      <div class="drawer__head">
+        <h2>Conversation</h2>
+        <button class="btn btn--ghost" id="close-transcript">Close</button>
+      </div>
+      <div class="drawer__body" id="transcript-body"></div>
+    </dialog>
+
+    <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>
