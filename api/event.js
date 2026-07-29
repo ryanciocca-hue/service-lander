@@ -7,11 +7,14 @@ const ALLOWED_TYPES = new Set([
   "option_selected",
   "cta_click",
   "form_shown",
+  "form_field",
   "form_submitted",
   "restart",
 ]);
 
-const MAX_EVENTS_PER_REQUEST = 40;
+// The conversational form emits one event per question, so a full run is
+// longer than it used to be.
+const MAX_EVENTS_PER_REQUEST = 60;
 
 /**
  * POST /api/event

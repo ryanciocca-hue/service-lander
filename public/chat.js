@@ -255,6 +255,9 @@ function revealHeaderCall() {
   headerCall.href = CONFIG.phoneHref;
   document.getElementById("header-call-label").textContent = CONFIG.phoneDisplay;
   headerCall.hidden = false;
+  // Lets the header drop its strapline on narrow phones, now that the call
+  // button is competing for the same row.
+  document.querySelector(".site-header")?.classList.add("has-call");
   headerCall.addEventListener("click", () => {
     track("cta_click", { nodeId: "header", optionId: "header_call", optionLabel: "Header call button" });
     flush();
@@ -351,21 +354,35 @@ function appendRestart() {
  * Forms
  * ---------------------------------------------------------------------- */
 
-function buildField(spec) {
-  const wrapper = element("div", "field");
-  wrapper.dataset.field = spec.name;
+/**
+ * The forms are conversational: one question at a time, each asked by the
+ * agent and answered in a bubble, rather than a wall of fields. On mobile
+ * that means one small input on screen instead of five.
+ */
 
-  const id = `f_${spec.name}`;
-  const label = element("label", null, spec.label);
-  label.htmlFor = id;
-  wrapper.appendChild(label);
+function validateField(spec, value) {
+  const trimmed = (value ?? "").trim();
+  if (spec.required && !trimmed) return spec.emptyError ?? "Please fill this in.";
+  if (!trimmed) return null;
 
+  if (spec.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
+    return "That email doesn't look right — mind checking it?";
+  }
+  if (spec.type === "tel" && (trimmed.match(/\d/g) || []).length < 7) {
+    return "That doesn't look like a full phone number.";
+  }
+  return null;
+}
+
+function buildInput(spec) {
   let input;
+
   if (spec.type === "textarea") {
     input = element("textarea");
+    input.rows = 3;
   } else if (spec.type === "select") {
     input = element("select");
-    const placeholder = element("option", null, "Select…");
+    const placeholder = element("option", null, "Choose your state…");
     placeholder.value = "";
     input.appendChild(placeholder);
     for (const value of spec.options) {
@@ -378,102 +395,166 @@ function buildField(spec) {
     input.type = spec.type;
   }
 
-  input.id = id;
   input.name = spec.name;
-  if (spec.required) input.required = true;
+  // The agent's message is the label, so the visible <label> is dropped and
+  // the accessible name comes from here instead.
+  input.setAttribute("aria-label", spec.label);
   if (spec.maxLength) input.maxLength = spec.maxLength;
   if (spec.autocomplete) input.autocomplete = spec.autocomplete;
   if (spec.placeholder) input.placeholder = spec.placeholder;
 
-  wrapper.appendChild(input);
-  return wrapper;
-}
-
-function showFieldErrors(form, fieldErrors) {
-  for (const wrapper of form.querySelectorAll(".field")) {
-    wrapper.classList.remove("field--error");
-    wrapper.querySelector(".field__error")?.remove();
-  }
-
-  for (const [name, message] of Object.entries(fieldErrors ?? {})) {
-    const wrapper = form.querySelector(`.field[data-field="${name}"]`);
-    if (!wrapper) continue;
-    wrapper.classList.add("field--error");
-    wrapper.appendChild(element("p", "field__error", message));
-  }
+  return input;
 }
 
 function renderForm(nodeId, node) {
   hasInteracted = true;
   track("form_shown", { nodeId, optionId: node.form.id, optionLabel: node.form.id });
+  askField(nodeId, node, 0, {});
+}
 
-  const form = element("form", "chat-form");
-  form.noValidate = true;
+async function askField(nodeId, node, index, values) {
+  const fields = node.form.fields;
 
-  for (const spec of node.form.fields) form.appendChild(buildField(spec));
+  if (index >= fields.length) {
+    submitForm(nodeId, node, values);
+    return;
+  }
 
-  const banner = element("div", "form-error");
-  banner.hidden = true;
-  form.appendChild(banner);
+  const spec = fields[index];
+  clearActions();
 
-  const submit = element("button", "cta", node.form.submitLabel);
-  submit.type = "submit";
-  form.appendChild(submit);
+  const prompt = typeof spec.prompt === "function" ? spec.prompt(values) : spec.prompt;
+  await typeThen(prompt);
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    banner.hidden = true;
-    submit.disabled = true;
-    submit.textContent = "Sending…";
+  const step = element("form", "chat-step");
+  step.noValidate = true;
 
-    const values = Object.fromEntries(new FormData(form).entries());
+  const field = element("div", "field");
+  const input = buildInput(spec);
+  field.appendChild(input);
 
-    try {
-      await sessionReady;
-      const response = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, kind: node.form.kind, sessionId }),
-      });
-      const data = await response.json();
+  const error = element("p", "field__error");
+  error.hidden = true;
 
-      if (!response.ok) {
-        showFieldErrors(form, data.fields);
-        banner.textContent = data.error ?? "Something went wrong. Please try again.";
-        banner.hidden = false;
-        submit.disabled = false;
-        submit.textContent = node.form.submitLabel;
-        scrollToEnd();
-        return;
-      }
+  const isLast = index === fields.length - 1;
+  const wide = spec.type === "textarea" || spec.type === "select";
 
-      showFieldErrors(form, {});
-      track("form_submitted", { nodeId, optionId: node.form.id, optionLabel: node.form.id });
-      setOutcome(`${node.form.kind}_submitted`, true);
-      flush();
+  const send = element("button", `step-send${wide ? " step-send--wide" : ""}`);
+  send.type = "submit";
+  send.textContent = wide ? (isLast ? node.form.submitLabel : "Continue") : "";
+  if (!wide) send.setAttribute("aria-label", isLast ? node.form.submitLabel : "Continue");
 
-      clearActions();
-      addBubble(summarise(values), "user");
-      for (const message of THANK_YOU[node.form.kind] ?? ["Thanks — we'll be in touch."]) {
-        await typeThen(message);
-      }
-      appendRestart();
-    } catch {
-      banner.textContent = "We couldn't send that. Please check your connection and try again.";
-      banner.hidden = false;
-      submit.disabled = false;
-      submit.textContent = node.form.submitLabel;
+  const row = element("div", `step-row${wide ? " step-row--stacked" : ""}`);
+  row.appendChild(field);
+  row.appendChild(send);
+
+  step.appendChild(row);
+  step.appendChild(error);
+
+  const advance = (event) => {
+    event?.preventDefault();
+    const value = input.value;
+    const problem = validateField(spec, value);
+
+    if (problem) {
+      field.classList.add("field--error");
+      error.textContent = problem;
+      error.hidden = false;
+      input.focus();
+      scrollToEnd();
+      return;
+    }
+
+    values[spec.name] = value.trim();
+    clearActions();
+    addBubble(value.trim(), "user");
+    track("form_field", {
+      nodeId,
+      optionId: spec.name,
+      optionLabel: spec.label,
+    });
+    askField(nodeId, node, index + 1, values);
+  };
+
+  step.addEventListener("submit", advance);
+
+  // Enter sends on a single-line field; in the notes box it needs Shift.
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    if (spec.type === "textarea" && !event.shiftKey) {
+      event.preventDefault();
+      advance();
+    } else if (spec.type !== "textarea") {
+      event.preventDefault();
+      advance();
     }
   });
 
-  actions.appendChild(form);
+  // Picking from the state list is a complete answer on its own.
+  if (spec.type === "select") {
+    input.addEventListener("change", () => {
+      if (input.value) advance();
+    });
+  }
+
+  input.addEventListener("input", () => {
+    field.classList.remove("field--error");
+    error.hidden = true;
+  });
+
+  actions.appendChild(step);
+  input.focus({ preventScroll: true });
   scrollToEnd();
 }
 
-/** A short confirmation bubble echoing what the visitor sent. */
-function summarise(values) {
-  const parts = [values.name, values.phone, values.email].filter(Boolean);
-  return parts.join(" · ");
+async function submitForm(nodeId, node, values) {
+  clearActions();
+
+  const pending = element("div", "chat-step");
+  const status = element("p", "step-status", "Sending…");
+  pending.appendChild(status);
+  actions.appendChild(pending);
+  scrollToEnd();
+
+  try {
+    await sessionReady;
+    const response = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...values, kind: node.form.kind, sessionId }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      // The server found something the per-field checks let through; send the
+      // visitor back to that question rather than losing what they typed.
+      const badField = Object.keys(data.fields ?? {})[0];
+      const index = node.form.fields.findIndex((f) => f.name === badField);
+      clearActions();
+      await typeThen(data.error ?? "Something went wrong — let's try that again.");
+      askField(nodeId, node, index >= 0 ? index : 0, values);
+      return;
+    }
+
+    track("form_submitted", { nodeId, optionId: node.form.id, optionLabel: node.form.id });
+    setOutcome(`${node.form.kind}_submitted`, true);
+    flush();
+
+    clearActions();
+    for (const message of THANK_YOU[node.form.kind] ?? ["Thanks — we'll be in touch."]) {
+      await typeThen(message);
+    }
+    appendRestart();
+  } catch {
+    clearActions();
+    await typeThen("I couldn't send that — please check your connection.");
+
+    const retry = element("button", "cta", "Try again");
+    retry.type = "button";
+    retry.addEventListener("click", () => submitForm(nodeId, node, values));
+    actions.appendChild(retry);
+    scrollToEnd();
+  }
 }
 
 /* -------------------------------------------------------------------------

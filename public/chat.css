@@ -133,14 +133,26 @@ a {
   text-overflow: ellipsis;
 }
 
+/* The call button only appears once the visitor answers, and on a narrow
+   phone it leaves the strapline too little room — a clipped half-word reads
+   worse than no strapline. So it gives way at that point, not before. */
+@media (max-width: 460px) {
+  .site-header.has-call .wordmark__text small {
+    display: none;
+  }
+}
+
 .header-call {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   flex: none;
-  padding: 8px 14px;
+  /* 44px minimum so it's a comfortable thumb target on a phone. */
+  min-height: 44px;
+  padding: 10px 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -153,20 +165,22 @@ a {
 
 /* ---------- Page shell -------------------------------------------------- */
 
+/* The chat is the page. On a phone the hero stays compact so the
+   conversation — and the first set of options — start above the fold. */
 .page {
   max-width: 720px;
   margin: 0 auto;
-  padding: 26px 18px 40px;
+  padding: 18px 16px 36px;
 }
 
 .intro {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .intro h1 {
-  margin: 0 0 10px;
-  font-size: 25px;
+  margin: 0 0 7px;
+  font-size: 22px;
   line-height: 1.25;
   letter-spacing: -0.02em;
   color: var(--brand-night);
@@ -176,7 +190,8 @@ a {
   margin: 0 auto;
   max-width: 46ch;
   color: var(--ink-soft);
-  font-size: 15px;
+  font-size: 14.5px;
+  line-height: 1.45;
 }
 
 /* ---------- Chat card --------------------------------------------------- */
@@ -494,17 +509,82 @@ a {
   margin: -2px 0 0;
 }
 
-.chat-form {
+/* ---------- One question at a time -------------------------------------- */
+
+.chat-step {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 8px;
   animation: rise 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.step-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* The notes box and the state picker get the button on its own line. */
+.step-row--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.step-send {
+  flex: none;
+  width: 52px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+
+/* Chevron drawn in CSS — no icon font or SVG to load. */
+.step-send::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-left: -3px;
+  border-top: 2px solid #fff;
+  border-right: 2px solid #fff;
+  transform: rotate(45deg);
+}
+
+.step-send--wide {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 18px;
+  font-size: 17px;
+}
+.step-send--wide::after {
+  display: none;
+}
+
+.step-send:hover {
+  background-color: var(--brand-darker);
+}
+
+.step-status {
+  margin: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-faint);
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .field label {
@@ -644,6 +724,13 @@ textarea:focus-visible {
 @media (min-width: 600px) {
   .intro h1 {
     font-size: 31px;
+    margin-bottom: 10px;
+  }
+  .intro p {
+    font-size: 15px;
+  }
+  .intro {
+    margin-bottom: 22px;
   }
   .page {
     padding: 38px 18px 52px;

@@ -746,7 +746,10 @@ async function openTranscript(id) {
     } else if (event.type === "cta_click") {
       replay.appendChild(element("div", "replay__note", `Clicked: ${event.option_label}`));
     } else if (event.type === "form_shown") {
-      replay.appendChild(element("div", "replay__note", "Form shown"));
+      replay.appendChild(element("div", "replay__note", "Started the form"));
+    } else if (event.type === "form_field") {
+      // Shows exactly which question someone stopped at.
+      replay.appendChild(element("div", "replay__note", `Answered: ${event.option_label}`));
     } else if (event.type === "form_submitted") {
       replay.appendChild(element("div", "replay__note", "Form submitted"));
     } else if (event.type === "restart") {

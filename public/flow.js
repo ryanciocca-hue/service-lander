@@ -55,6 +55,12 @@ export const US_STATES = [
   "Puerto Rico", "Canada", "Other / Outside the US",
 ];
 
+/** Turns "Dale Whitfield" into ", Dale" so later prompts can use their name. */
+function firstName(full) {
+  const first = (full ?? "").trim().split(/\s+/)[0];
+  return first ? `, ${first}` : "";
+}
+
 export const START_NODE = "intro";
 
 export const NODES = {
@@ -114,26 +120,63 @@ export const NODES = {
   },
 
   parts_callback: {
-    messages: [
-      "No problem, I'll get a parts specialist to reach out to you.",
-      "Just need a few details and we'll be in touch shortly.",
-    ],
+    messages: ["No problem — I'll get a parts specialist to reach out to you."],
     form: {
       id: "parts_callback",
       kind: "parts_callback",
-      submitLabel: "Request a callback",
+      submitLabel: "Send my request",
+      // Asked one at a time. `prompt` is what the agent says before each
+      // question — a function when it needs an earlier answer.
       fields: [
-        { name: "name", label: "Your name", type: "text", autocomplete: "name", required: true, maxLength: 100 },
-        { name: "phone", label: "Phone number", type: "tel", autocomplete: "tel", required: true, maxLength: 32 },
-        { name: "email", label: "Email", type: "email", autocomplete: "email", required: true, maxLength: 254 },
-        { name: "state", label: "State", type: "select", options: US_STATES, required: true },
+        {
+          name: "name",
+          label: "Your name",
+          type: "text",
+          autocomplete: "name",
+          prompt: "First off, what's your name?",
+          emptyError: "Just your name is fine.",
+          required: true,
+          maxLength: 100,
+        },
+        {
+          name: "phone",
+          label: "Phone number",
+          type: "tel",
+          autocomplete: "tel",
+          prompt: (v) => `Thanks${firstName(v.name)}! What's the best phone number to reach you at?`,
+          emptyError: "We'll need a number to call you back on.",
+          required: true,
+          maxLength: 32,
+        },
+        {
+          name: "email",
+          label: "Email address",
+          type: "email",
+          autocomplete: "email",
+          prompt: "Got it. And your email address?",
+          emptyError: "We'll need an email address.",
+          required: true,
+          maxLength: 254,
+        },
+        {
+          name: "state",
+          label: "State",
+          type: "select",
+          options: US_STATES,
+          prompt: "Which state are you in? That way I can route you to the right team.",
+          emptyError: "Please pick your state.",
+          required: true,
+        },
         {
           name: "notes",
           label: "What parts do you need?",
           type: "textarea",
+          prompt:
+            "Last one — what parts do you need? Machine model and serial number help if you have them handy.",
+          emptyError: "Tell us roughly what you're after and we'll take it from there.",
           required: true,
           maxLength: 2000,
-          placeholder: "Machine model, serial number, and the parts you're after",
+          placeholder: "e.g. XAS 185, serial ARP-2249811 — air filter and separator kit",
         },
       ],
     },
@@ -142,25 +185,52 @@ export const NODES = {
   },
 
   service_form: {
-    messages: [
-      "Got it — let's get a service request started for you.",
-      "Give me a few details and the right service coordinator will follow up.",
-    ],
+    messages: ["Got it — let's get a service request started for you."],
     form: {
       id: "service_request",
       kind: "service_request",
-      submitLabel: "Submit service request",
+      submitLabel: "Send my request",
       fields: [
-        { name: "name", label: "Your name", type: "text", autocomplete: "name", required: true, maxLength: 100 },
-        { name: "phone", label: "Phone number", type: "tel", autocomplete: "tel", required: true, maxLength: 32 },
-        { name: "email", label: "Email", type: "email", autocomplete: "email", required: true, maxLength: 254 },
+        {
+          name: "name",
+          label: "Your name",
+          type: "text",
+          autocomplete: "name",
+          prompt: "First off, what's your name?",
+          emptyError: "Just your name is fine.",
+          required: true,
+          maxLength: 100,
+        },
+        {
+          name: "phone",
+          label: "Phone number",
+          type: "tel",
+          autocomplete: "tel",
+          prompt: (v) => `Thanks${firstName(v.name)}. What's the best number to reach you at?`,
+          emptyError: "We'll need a number to reach you on.",
+          required: true,
+          maxLength: 32,
+        },
+        {
+          name: "email",
+          label: "Email address",
+          type: "email",
+          autocomplete: "email",
+          prompt: "And your email address?",
+          emptyError: "We'll need an email address.",
+          required: true,
+          maxLength: 254,
+        },
         {
           name: "notes",
           label: "Service request details",
           type: "textarea",
+          prompt:
+            "Now tell me what's going on — machine model, serial number, the issue you're seeing, and where the machine is.",
+          emptyError: "A short description is enough to get started.",
           required: true,
           maxLength: 2000,
-          placeholder: "Machine model, serial number, the issue you're seeing, and your location",
+          placeholder: "e.g. QAS 60 generator, low oil pressure fault after 40 hours, Austin TX",
         },
       ],
     },
