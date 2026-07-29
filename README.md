@@ -73,7 +73,7 @@ no migration step. `schema.sql` documents the same schema in readable form.
 
 | Variable | Required | What it does |
 |---|---|---|
-| `DATABASE_URL` | yes | Postgres connection string (use the pooled one) |
+| `DATABASE_URL` | yes | Postgres connection string (use the pooled one). Attaching Neon or Vercel Postgres through the Vercel integration injects this for you — `POSTGRES_URL`, `DATABASE_URL_UNPOOLED` and `POSTGRES_URL_NON_POOLING` are also accepted |
 | `ADMIN_PASSWORD` | yes | The password for `/admin` |
 | `SESSION_SECRET` | yes | Signs the admin cookie — `openssl rand -hex 32` |
 | `RESEND_API_KEY` | for email | API key from [resend.com](https://resend.com) |
@@ -85,6 +85,29 @@ no migration step. `schema.sql` documents the same schema in readable form.
 
 If the email variables are missing, submissions are still saved and still appear
 in the dashboard — only the notification is skipped, and the dashboard shows why.
+
+### Checking the deployment
+
+Open **`/api/health`** in a browser after deploying. It reports which variables
+are set, whether the database actually answers, whether the tables exist, and
+whether the placeholder phone number is still in place:
+
+```json
+{
+  "ready": true,
+  "checks": {
+    "database": { "variable": "DATABASE_URL", "connected": true,
+                  "tables": ["events", "sessions", "submissions"] },
+    "admin":    { "passwordSet": true, "sessionSecretLongEnough": true },
+    "email":    { "apiKeySet": true, "fromSet": true, "recipientCount": 1 }
+  },
+  "warnings": []
+}
+```
+
+It returns `503` until the database, admin password and session secret are all
+in place. It reports booleans, counts and Postgres error codes only — never a
+secret, a connection string or a hostname — so it is safe to leave reachable.
 
 ---
 
