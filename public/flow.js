@@ -22,6 +22,15 @@
 export const CONFIG = {
   agentName: "Ryan",
   agentRole: "Atlas Copco Service",
+
+  // Shown beside every agent bubble.
+  agentShortName: "Ryan C.",
+
+  // Headshot shown beside every agent bubble and in the chat header.
+  // Drop the file in public/ and point this at it. If the file is missing or
+  // fails to load, the avatar falls back to `agentInitials` automatically, so
+  // the page never shows a broken image.
+  agentPhoto: "/ryan-c.jpg",
   agentInitials: "R",
 
   webshopUrl: "https://shop-power-technique.atlascopco.com/en-us/",

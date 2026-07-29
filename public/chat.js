@@ -152,9 +152,49 @@ function scrollToEnd() {
   });
 }
 
+/**
+ * The agent's headshot. Falls back to initials if the photo is missing or
+ * fails to load, so a bad path never leaves a broken image on the page.
+ */
+function avatar(className) {
+  const wrap = element("span", className);
+  wrap.appendChild(element("span", "avatar__initials", CONFIG.agentInitials));
+
+  if (CONFIG.agentPhoto) {
+    const photo = document.createElement("img");
+    photo.src = CONFIG.agentPhoto;
+    photo.alt = "";
+    photo.loading = "eager";
+    photo.addEventListener("error", () => photo.remove());
+    wrap.appendChild(photo);
+  }
+
+  return wrap;
+}
+
+/**
+ * Agent messages are a row: headshot, then the sender's name above the bubble.
+ * Visitor messages stay a bare right-aligned bubble.
+ */
 function addBubble(text, who) {
-  const bubble = element("div", `msg msg--${who}`, text);
-  log.appendChild(bubble);
+  if (who !== "agent") {
+    const bubble = element("div", "msg msg--user", text);
+    log.appendChild(bubble);
+    scrollToEnd();
+    return bubble;
+  }
+
+  const row = element("div", "msg-row");
+  row.appendChild(avatar("msg-avatar"));
+
+  const body = element("div", "msg-body");
+  body.appendChild(element("span", "msg-name", CONFIG.agentShortName));
+
+  const bubble = element("div", "msg msg--agent", text);
+  body.appendChild(bubble);
+  row.appendChild(body);
+
+  log.appendChild(row);
   scrollToEnd();
   return bubble;
 }
@@ -171,14 +211,21 @@ function typingDuration(text) {
 async function typeThen(text) {
   await wait(240);
 
-  const indicator = element("div", "typing");
-  indicator.setAttribute("aria-label", `${CONFIG.agentName} is typing`);
-  for (let i = 0; i < 3; i += 1) indicator.appendChild(element("i"));
-  log.appendChild(indicator);
+  // Sits in the same row shape as a bubble, so the message doesn't jump
+  // sideways when the dots are replaced.
+  const row = element("div", "msg-row msg-row--typing");
+  row.appendChild(avatar("msg-avatar"));
+
+  const dots = element("div", "typing");
+  dots.setAttribute("aria-label", `${CONFIG.agentName} is typing`);
+  for (let i = 0; i < 3; i += 1) dots.appendChild(element("i"));
+  row.appendChild(dots);
+
+  log.appendChild(row);
   scrollToEnd();
 
   await wait(typingDuration(text));
-  indicator.remove();
+  row.remove();
   addBubble(text, "agent");
 }
 
@@ -435,8 +482,13 @@ function summarise(values) {
 
 document.getElementById("agent-name").textContent = CONFIG.agentName;
 document.getElementById("agent-role").textContent = CONFIG.agentRole;
-document.getElementById("agent-avatar").textContent = CONFIG.agentInitials;
 document.getElementById("year").textContent = String(new Date().getFullYear());
+
+// Swap the placeholder header avatar for the photo (with initials fallback).
+const headerAvatar = avatar("avatar");
+headerAvatar.id = "agent-avatar";
+headerAvatar.setAttribute("aria-hidden", "true");
+document.getElementById("agent-avatar").replaceWith(headerAvatar);
 
 track("session_start", {});
 setTimeout(() => goTo(START_NODE), 450);
