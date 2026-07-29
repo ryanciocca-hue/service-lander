@@ -40,6 +40,11 @@ export const CONFIG = {
   // what their phone dials.
   phoneDisplay: "(800) 555-0100",
   phoneHref: "tel:+18005550100",
+
+  // Where stationary-compressor enquiries are sent. We only cover portable,
+  // so these visitors are handed straight to the stationary team.
+  stationaryPhoneDisplay: "(866) 373-8124",
+  stationaryPhoneHref: "tel:+18663738124",
 };
 
 export const US_STATES = [
@@ -71,19 +76,49 @@ export const NODES = {
     ],
     question: "Are you looking for parts or service?",
     options: [
-      { id: "parts", label: "Parts", next: "parts_route" },
+      { id: "parts", label: "Parts", next: "parts_type" },
       { id: "service", label: "Service", next: "service_form" },
     ],
   },
 
-  parts_route: {
+  // Qualifier: we only cover portable compressors, so stationary enquiries
+  // are handed off before they get any further down the parts path.
+  parts_type: {
     messages: [
       "I can help you with that.",
+      "Is this for a stationary or a portable compressor?",
+    ],
+    question: "Stationary or portable compressor?",
+    options: [
+      { id: "portable", label: "Portable", next: "parts_route" },
+      { id: "stationary", label: "Stationary", next: "parts_stationary" },
+    ],
+  },
+
+  parts_stationary: {
+    messages: [
+      "Sorry, we only offer service for portable compressors.",
+      `For stationary compressors, give ${CONFIG.stationaryPhoneDisplay} a call — that team will be able to help you.`,
+    ],
+    cta: {
+      kind: "tel",
+      label: `Call ${CONFIG.stationaryPhoneDisplay}`,
+      href: CONFIG.stationaryPhoneHref,
+      phoneDisplay: CONFIG.stationaryPhoneDisplay,
+      note: "Stationary compressor support",
+    },
+    outcome: "stationary_referral",
+    terminal: true,
+  },
+
+  parts_route: {
+    messages: [
+      "Perfect — portable is what we specialize in.",
       "Do you want someone to reach out to you for help, or do you want to shop for your parts online?",
     ],
     question: "Reach out for help, or shop online?",
     options: [
-      { id: "webshop", label: "Shop on Web Shop", next: "parts_webshop" },
+      { id: "webshop", label: "Buy Parts Online", next: "parts_webshop" },
       { id: "contact_me", label: "Have someone contact me", next: "parts_callback" },
       { id: "call_now", label: "Call parts support now", next: "parts_call" },
     ],
@@ -113,6 +148,7 @@ export const NODES = {
       kind: "tel",
       label: `Call ${CONFIG.phoneDisplay}`,
       href: CONFIG.phoneHref,
+      phoneDisplay: CONFIG.phoneDisplay,
       note: "Tap to call parts support",
     },
     outcome: "call",
@@ -264,10 +300,12 @@ export const THANK_YOU = {
  */
 export const FUNNEL = [
   { nodeId: "intro", label: "Chat opened", parent: null, depth: 0 },
-  { nodeId: "parts_route", label: "Chose Parts", parent: "intro", depth: 1 },
-  { nodeId: "parts_webshop", label: "Web Shop", parent: "parts_route", depth: 2 },
-  { nodeId: "parts_callback", label: "Callback form", parent: "parts_route", depth: 2 },
-  { nodeId: "parts_call", label: "Call parts support", parent: "parts_route", depth: 2 },
+  { nodeId: "parts_type", label: "Chose Parts", parent: "intro", depth: 1 },
+  { nodeId: "parts_stationary", label: "Stationary — referred out", parent: "parts_type", depth: 2 },
+  { nodeId: "parts_route", label: "Portable", parent: "parts_type", depth: 2 },
+  { nodeId: "parts_webshop", label: "Buy parts online", parent: "parts_route", depth: 3 },
+  { nodeId: "parts_callback", label: "Callback form", parent: "parts_route", depth: 3 },
+  { nodeId: "parts_call", label: "Call parts support", parent: "parts_route", depth: 3 },
   { nodeId: "service_form", label: "Chose Service", parent: "intro", depth: 1 },
 ];
 
@@ -275,6 +313,7 @@ export const FUNNEL = [
 export const OUTCOME_LABELS = {
   webshop: "Sent to Web Shop",
   call: "Sent to phone support",
+  stationary_referral: "Stationary — referred out",
   parts_callback: "Parts callback form shown",
   service_request: "Service form shown",
   parts_callback_submitted: "Parts callback submitted",

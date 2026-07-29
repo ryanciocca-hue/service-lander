@@ -250,19 +250,45 @@ function refreshCallTracking() {
   }
 }
 
-function revealHeaderCall() {
-  if (!headerCall || !headerCall.hidden) return;
-  headerCall.href = CONFIG.phoneHref;
-  document.getElementById("header-call-label").textContent = CONFIG.phoneDisplay;
-  headerCall.hidden = false;
-  // Lets the header drop its strapline on narrow phones, now that the call
-  // button is competing for the same row.
-  document.querySelector(".site-header")?.classList.add("has-call");
-  headerCall.addEventListener("click", () => {
-    track("cta_click", { nodeId: "header", optionId: "header_call", optionLabel: "Header call button" });
-    flush();
-  });
+let headerCallBound = false;
+
+/**
+ * Points the header call button at a number and reveals it. Stationary
+ * enquiries get handed to a different team, so the header has to follow the
+ * conversation — otherwise it would offer the portable parts line on the very
+ * screen telling them we don't cover stationary.
+ */
+function setHeaderCall(display, href) {
+  if (!headerCall) return;
+
+  headerCall.href = href;
+  document.getElementById("header-call-label").textContent = display;
+
+  if (headerCall.hidden) {
+    headerCall.hidden = false;
+    // Lets the header drop its strapline on narrow phones, now that the call
+    // button is competing for the same row.
+    document.querySelector(".site-header")?.classList.add("has-call");
+  }
+
+  if (!headerCallBound) {
+    headerCallBound = true;
+    headerCall.addEventListener("click", () => {
+      track("cta_click", {
+        nodeId: "header",
+        optionId: "header_call",
+        optionLabel: `Header call — ${document.getElementById("header-call-label").textContent}`,
+      });
+      flush();
+    });
+  }
+
   refreshCallTracking();
+}
+
+/** The default parts number, shown once the visitor answers anything. */
+function revealHeaderCall() {
+  setHeaderCall(CONFIG.phoneDisplay, CONFIG.phoneHref);
 }
 
 /* -------------------------------------------------------------------------
@@ -331,7 +357,11 @@ function renderCta(nodeId, node) {
   });
 
   actions.appendChild(link);
-  if (node.cta.kind === "tel") refreshCallTracking();
+
+  // Keep the header in step with the number this step is offering.
+  if (node.cta.kind === "tel") {
+    setHeaderCall(node.cta.phoneDisplay ?? node.cta.label, node.cta.href);
+  }
 
   if (node.cta.note) actions.appendChild(element("p", "cta-note", node.cta.note));
   appendRestart();
